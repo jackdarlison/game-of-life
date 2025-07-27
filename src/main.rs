@@ -1,4 +1,3 @@
-use core::hash;
 use std::collections::HashMap;
 
 use macroquad::{
@@ -6,7 +5,6 @@ use macroquad::{
     ui::{
         hash, root_ui,
         widgets::{Button, Window},
-        Ui,
     },
 };
 
@@ -45,6 +43,10 @@ impl World {
             height,
             cells: vec![Cell::dead(); (width * height) as usize],
         }
+    }
+
+    fn reset(&mut self) {
+        self.cells = vec![Cell::dead(); (self.width * self.height) as usize];
     }
 
     fn randomize(&mut self) {
@@ -146,7 +148,6 @@ static GRID_SIZE: usize = 10;
 static CELL_SIZE: usize = 8;
 static OFFSET: usize = (GRID_SIZE - CELL_SIZE) / 2;
 
-static FRAME_TIME: f32 = 1.0 / 6.0;
 struct CellColour {
     r: f32,
     g: f32,
@@ -186,6 +187,7 @@ impl Default for Spawn {
 struct RuleSet {
     include_self: bool,
     state_machine: String,
+    defined: usize,
 }
 
 static GAME_OF_LIFE_STATE_MACHINE: &'static str = r#"{
@@ -204,11 +206,29 @@ static GAME_OF_LIFE_STATE_MACHINE: &'static str = r#"{
     }
 }"#;
 
+static HIGHLIFE_STATE_MACHINE: &'static str = r#"{
+    "0": {
+        "3": 1,
+        "6": 1
+    },
+    "1": {
+        "0": 0,
+        "1": 0,
+        "4": 0,
+        "5": 0,
+        "6": 0,
+        "7": 0,
+        "8": 0,
+        "9": 0
+    }
+}"#;
+
 impl Default for RuleSet {
     fn default() -> Self {
         Self {
             include_self: false,
             state_machine: String::from(GAME_OF_LIFE_STATE_MACHINE),
+            defined: 0,
         }
     }
 }
@@ -220,6 +240,7 @@ struct Config {
     cell_colour: CellColour,
     rule_set: RuleSet,
     paused: bool,
+    step_time: f32,
 }
 
 impl Default for Config {
@@ -229,6 +250,7 @@ impl Default for Config {
             cell_colour: Default::default(),
             rule_set: Default::default(),
             paused: false,
+            step_time: 1. / 6.,
         }
     }
 }
@@ -251,21 +273,20 @@ async fn main() {
 
     // Default to cyan-600
     let mut config = Config::default();
+    let mut defined_rule_ui: usize = 0;
 
     let colour_slider_range = 0f32..255f32;
 
     loop {
         elapsed_frame += get_frame_time();
-        if elapsed_frame > FRAME_TIME && !config.paused {
+        if elapsed_frame > config.step_time && !config.paused {
             elapsed_frame = 0.0;
 
             // Only update the world if the game is an 'update frame'
             let state_machine = serde_json::from_str(&config.rule_set.state_machine);
 
             match state_machine {
-                Ok(sm) => {
-                    world = world.next_generation(sm)
-                }
+                Ok(sm) => world = world.next_generation(sm),
                 Err(e) => println!("Ruleset error: {e}"),
             }
         }
@@ -340,7 +361,7 @@ async fn main() {
                         &mut config.spawn.timer_size,
                     );
                     tree_ui.slider(hash!(), "Spawn time", 0f32..10f32, &mut config.spawn.timer);
-                    tree_ui.checkbox(hash!(), "Period Spawns", &mut config.spawn.spawn);
+                    tree_ui.checkbox(hash!(), "Periodic Spawns", &mut config.spawn.spawn);
                 });
 
                 config.spawn.interact_size = (config.spawn.interact_size as isize) as f32;
@@ -381,16 +402,43 @@ async fn main() {
                 ui.tree_node(hash!(), "Rule Set", |tree_ui| {
                     tree_ui.checkbox(hash!(), "Include Self", &mut config.rule_set.include_self);
 
+                    tree_ui.label(None, "State Machine");
                     tree_ui.editbox(
                         hash!(),
                         Vec2::new(screen_width() / 2.0 - 10.0, screen_width() / 4.0),
                         &mut config.rule_set.state_machine,
                     );
+
+                    tree_ui.combo_box(
+                        hash!(),
+                        "Defined Rules",
+                        &["Game of Life", "Highlife"],
+                        &mut defined_rule_ui,
+                    );
+                    if defined_rule_ui != config.rule_set.defined {
+                        config.rule_set.defined = defined_rule_ui;
+                        match defined_rule_ui {
+                            0 => {
+                                config.rule_set.state_machine =
+                                    GAME_OF_LIFE_STATE_MACHINE.to_string()
+                            }
+                            1 => config.rule_set.state_machine = HIGHLIFE_STATE_MACHINE.to_string(),
+                            _ => (),
+                        }
+                    }
                 });
 
                 ui.separator();
 
                 ui.checkbox(hash!(), "Pause", &mut config.paused);
+
+                ui.slider(hash!(), "Step Time", 0f32..2f32, &mut config.step_time);
+
+                ui.separator();
+
+                if ui.button(None, "Reset") {
+                    world.reset();
+                }
             }) {
                 show_config = false;
             }
