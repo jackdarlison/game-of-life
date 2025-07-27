@@ -105,8 +105,7 @@ impl World {
                     .get(&cell.state)
                     .and_then(|rules| {
                         rules
-                            .get(&count)
-                            .and_then(|v| Some(Cell { state: *v }))
+                            .get(&count).map(|v| Cell { state: *v })
                             .or(Some(cell))
                     })
                     .unwrap_or(cell);
@@ -190,7 +189,7 @@ struct RuleSet {
     defined: usize,
 }
 
-static GAME_OF_LIFE_STATE_MACHINE: &'static str = r#"{
+static GAME_OF_LIFE_STATE_MACHINE: &str = r#"{
     "0": {
         "3": 1
     },
@@ -206,7 +205,7 @@ static GAME_OF_LIFE_STATE_MACHINE: &'static str = r#"{
     }
 }"#;
 
-static HIGHLIFE_STATE_MACHINE: &'static str = r#"{
+static HIGHLIFE_STATE_MACHINE: &str = r#"{
     "0": {
         "3": 1,
         "6": 1
@@ -442,13 +441,11 @@ async fn main() {
             }) {
                 show_config = false;
             }
-        } else {
-            if Button::new("Config")
-                .size(Vec2::new(screen_width() / 20.0, screen_width() / 20.0))
-                .ui(&mut root_ui())
-            {
-                show_config = true;
-            }
+        } else if Button::new("Config")
+            .size(Vec2::new(screen_width() / 20.0, screen_width() / 20.0))
+            .ui(&mut root_ui())
+        {
+            show_config = true;
         }
 
         // Get next frame
