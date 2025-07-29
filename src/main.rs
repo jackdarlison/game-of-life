@@ -103,11 +103,7 @@ impl World {
 
                 let next_cell: Cell = state_machine
                     .get(&cell.state)
-                    .and_then(|rules| {
-                        rules
-                            .get(&count).map(|v| Cell { state: *v })
-                            .or(Some(cell))
-                    })
+                    .and_then(|rules| rules.get(&count).map(|v| Cell { state: *v }).or(Some(cell)))
                     .unwrap_or(cell);
 
                 next.set_cell(x, y, next_cell);
