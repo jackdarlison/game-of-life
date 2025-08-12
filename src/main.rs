@@ -37,14 +37,14 @@ impl From<RulesetColour> for Color {
 }
 
 struct World {
-    width: isize,
-    height: isize,
+    width: usize,
+    height: usize,
     cells: Vec<Cell>,
     ruleset: Ruleset,
 }
 
 impl World {
-    fn new(width: isize, height: isize, ruleset: Ruleset) -> Option<Self> {
+    fn new((width, height): (usize, usize), ruleset: Ruleset) -> Option<Self> {
         let default_state = ruleset.default_state.clone();
         if let Some(state) = ruleset.states.get(&default_state) {
             Some(World {
@@ -55,7 +55,7 @@ impl World {
                         state: default_state,
                         colour: state.colour.clone().into()
                     };
-                    (width * height) as usize
+                    width * height
                 ],
                 ruleset,
             })
@@ -73,7 +73,7 @@ impl World {
                     state: default_state,
                     colour: state.colour.clone().into()
                 };
-                (self.width * self.height) as usize
+                self.width * self.height
             ]
         }
     }
@@ -89,11 +89,13 @@ impl World {
     }
 
     fn get_index(&self, x: isize, y: isize) -> usize {
-        let x = if x < 0 { self.width + x } else { x };
-        let x = if x >= self.width { x - self.width } else { x };
-        let y = if y < 0 { self.height + y } else { y };
-        let y = if y >= self.height { y - self.height } else { y };
-        (y * self.width + x) as usize
+        let width = self.width as isize;
+        let height = self.height as isize;
+        let x = if x < 0 { width + x } else { x };
+        let x = if x >= width { x - width } else { x };
+        let y = if y < 0 { height + y } else { y };
+        let y = if y >= height { y - height } else { y };
+        (y * width + x) as usize
     }
 
     fn get_cell(&self, x: isize, y: isize) -> &Cell {
@@ -127,6 +129,7 @@ impl World {
 
         for y in 0..self.height {
             for x in 0..self.width {
+                let (x, y) = (x as isize, y as isize);
                 let neighbour_counts = self.get_neighbourhood(x, y);
                 let current_cell = self.get_cell(x, y);
 
@@ -183,7 +186,7 @@ impl World {
             for dy in 0..size {
                 let nx = x + dx - 1;
                 let ny = y + dy - 1;
-                if nx < self.width && ny < self.height {
+                if nx < (self.width as isize) && ny < (self.height as isize) {
                     // 1 in 3 chance of spawning a cell
                     if rand::rand() < (u32::MAX / 3) {
                         self.set_cell(
@@ -202,9 +205,6 @@ impl World {
 }
 
 static WORLD_COLOUR: Color = color_u8!(0, 0, 0, 0);
-static GRID_SIZE: usize = 15;
-static CELL_SIZE: usize = 14;
-static OFFSET: usize = (GRID_SIZE - CELL_SIZE) / 2;
 
 struct Spawn {
     interact_size: f32,
@@ -237,6 +237,7 @@ struct Config {
     ruleset: String,
     paused: bool,
     step_time: f32,
+    cell_size: f32,
 }
 
 impl Default for Config {
@@ -246,7 +247,24 @@ impl Default for Config {
             ruleset: GAME_OF_LIFE_STATE_MACHINE.to_string(),
             paused: false,
             step_time: 0.5,
+            cell_size: 10.0,
         }
+    }
+}
+
+impl Config {
+    fn get_grid_size(&self) -> (usize, usize) {
+        (
+            (screen_width() / self.cell_size) as usize,
+            (screen_height() / self.cell_size) as usize,
+        )
+    }
+
+    fn get_cell_display_offset(&self) -> (usize, usize) {
+        (
+            (self.cell_size * 0.8) as usize,
+            (self.cell_size * 0.1) as usize,
+        )
     }
 }
 
@@ -255,9 +273,6 @@ async fn main() {
     // Pseuo-random seed generator
     let time = (get_time() * 100_000.0).powi(3) as u64;
     rand::srand(time);
-
-    let width = (screen_width() as usize / GRID_SIZE) as isize;
-    let height = (screen_height() as usize / GRID_SIZE) as isize;
 
     let mut elapsed_frame: f32 = 0.0;
     let mut elapsed_spawn: f32 = 0.0;
@@ -269,6 +284,8 @@ async fn main() {
     let mut defined_rule_ui: usize = 0;
     let mut previous_defined_rule_ui: usize = 0;
 
+    let mut previous_cell_size: f32 = config.cell_size;
+
     let ruleset: Ruleset = serde_json::from_str(&config.ruleset).unwrap();
     println!("\n\n {:?} \n\n", ruleset);
 
@@ -276,7 +293,7 @@ async fn main() {
     // combo boxes only take &[&str], precreate to avoid allocating this every frame
     let mut states_ref: Vec<&str> = states.iter().map(|s| s.as_str()).collect();
 
-    let mut world = World::new(width, height, ruleset).unwrap();
+    let mut world = World::new(config.get_grid_size(), ruleset).unwrap();
     world.randomise();
 
     let mut ruleset_changed = false;
@@ -308,7 +325,7 @@ async fn main() {
                         states = ok_ruleset.states.keys().cloned().collect();
                         // combo boxes only take &[&str], precreate to avoid allocating this every frame
                         states_ref = states.iter().map(|s| s.as_str()).collect();
-                        if let Some(new_world) = World::new(width, height, ok_ruleset) {
+                        if let Some(new_world) = World::new(config.get_grid_size(), ok_ruleset) {
                             world = new_world;
                         } else {
                             println!("Error creating new world from ruleset")
@@ -323,8 +340,8 @@ async fn main() {
 
         // Interactivity: click to add cells in a 5x5 square around the click
         if !show_config && is_mouse_button_down(MouseButton::Left) {
-            let x = (mouse_position().0 / GRID_SIZE as f32) as isize;
-            let y = (mouse_position().1 / GRID_SIZE as f32) as isize;
+            let x = (mouse_position().0 / config.cell_size) as isize;
+            let y = (mouse_position().1 / config.cell_size) as isize;
 
             world.spawn_group(
                 x,
@@ -338,11 +355,12 @@ async fn main() {
         elapsed_spawn += get_frame_time();
         if config.spawn.spawn && elapsed_spawn > config.spawn.timer && !config.paused {
             elapsed_spawn = 0.0;
-            let x = rand::rand() as isize % width;
-            let y = rand::rand() as isize % height;
+            let (width, height) = config.get_grid_size();
+            let x = rand::rand() as usize % width;
+            let y = rand::rand() as usize % height;
             world.spawn_group(
-                x,
-                y,
+                x as isize,
+                y as isize,
                 config.spawn.timer_size as isize,
                 &states[config.spawn.spawn_state],
             );
@@ -356,12 +374,13 @@ async fn main() {
 
         for y in 0..world.height {
             for x in 0..world.width {
-                let cell = world.get_cell(x, y);
+                let cell = world.get_cell(x as isize, y as isize);
+                let (display_size, offset) = config.get_cell_display_offset();
                 draw_rectangle(
-                    x as f32 * GRID_SIZE as f32 + OFFSET as f32,
-                    y as f32 * GRID_SIZE as f32 + OFFSET as f32,
-                    CELL_SIZE as f32,
-                    CELL_SIZE as f32,
+                    x as f32 * config.cell_size + offset as f32,
+                    y as f32 * config.cell_size + offset as f32,
+                    display_size as f32,
+                    display_size as f32,
                     cell.colour,
                 );
             }
@@ -466,6 +485,19 @@ async fn main() {
                 ui.checkbox(hash!(), "Pause", &mut config.paused);
 
                 ui.slider(hash!(), "Step Time", 0f32..2f32, &mut config.step_time);
+
+                ui.slider(
+                    hash!(),
+                    "Cell Size",
+                    2f32..(f32::min(screen_width(), screen_height()) / 10.0),
+                    &mut config.cell_size,
+                );
+                config.cell_size = (config.cell_size as usize) as f32;
+
+                if previous_cell_size != config.cell_size {
+                    previous_cell_size = config.cell_size;
+                    ruleset_changed = true;
+                }
 
                 ui.separator();
 
