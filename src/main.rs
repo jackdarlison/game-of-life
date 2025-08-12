@@ -20,7 +20,7 @@ struct Cell {
 impl From<RulesetColour> for Color {
     fn from(value: RulesetColour) -> Self {
         match value {
-            RulesetColour::RGBA(r, g, b, a) => color_u8!(r, g, b, a),
+            RulesetColour::Rgba(r, g, b, a) => color_u8!(r, g, b, a),
             RulesetColour::Hex(s) => {
                 if s.len() == 9 && s.starts_with('#') {
                     let r = u8::from_str_radix(&s[1..3], 16).unwrap_or(0);
@@ -57,7 +57,7 @@ impl World {
                     };
                     (width * height) as usize
                 ],
-                ruleset: ruleset,
+                ruleset,
             })
         } else {
             println!("No States defined");
@@ -79,7 +79,7 @@ impl World {
     }
 
     fn randomise(&mut self) {
-        let states: Vec<String> = self.ruleset.states.keys().into_iter().cloned().collect();
+        let states: Vec<String> = self.ruleset.states.keys().cloned().collect();
         for cell in &mut self.cells {
             let name = states.choose().unwrap();
             let state = self.ruleset.states.get(name).expect("Unreachable");
@@ -226,11 +226,11 @@ impl Default for Spawn {
     }
 }
 
-static GAME_OF_LIFE_STATE_MACHINE: &'static str = include_str!("../rulesets/game_of_life.json");
-static HIGHLIFE_STATE_MACHINE: &'static str = include_str!("../rulesets/highlife.json");
-static WIREWORLD_STATE_MACHINE: &'static str = include_str!("../rulesets/wireworld.json");
-static IMMIGRATION_STATE_MACHINE: &'static str = include_str!("../rulesets/immigration.json");
-static CYCLIC_STATE_MACHINE: &'static str = include_str!("../rulesets/cyclic.json");
+static GAME_OF_LIFE_STATE_MACHINE: &str = include_str!("../rulesets/game_of_life.json");
+static HIGHLIFE_STATE_MACHINE: &str = include_str!("../rulesets/highlife.json");
+static WIREWORLD_STATE_MACHINE: &str = include_str!("../rulesets/wireworld.json");
+static IMMIGRATION_STATE_MACHINE: &str = include_str!("../rulesets/immigration.json");
+static CYCLIC_STATE_MACHINE: &str = include_str!("../rulesets/cyclic.json");
 
 struct Config {
     spawn: Spawn,
@@ -272,7 +272,7 @@ async fn main() {
     let ruleset: Ruleset = serde_json::from_str(&config.ruleset).unwrap();
     println!("\n\n {:?} \n\n", ruleset);
 
-    let mut states: Vec<String> = ruleset.states.keys().into_iter().cloned().collect();
+    let mut states: Vec<String> = ruleset.states.keys().cloned().collect();
     // combo boxes only take &[&str], precreate to avoid allocating this every frame
     let mut states_ref: Vec<&str> = states.iter().map(|s| s.as_str()).collect();
 
@@ -305,7 +305,7 @@ async fn main() {
 
                 match ruleset {
                     Ok(ok_ruleset) => {
-                        states = ok_ruleset.states.keys().into_iter().cloned().collect();
+                        states = ok_ruleset.states.keys().cloned().collect();
                         // combo boxes only take &[&str], precreate to avoid allocating this every frame
                         states_ref = states.iter().map(|s| s.as_str()).collect();
                         if let Some(new_world) = World::new(width, height, ok_ruleset) {
@@ -385,8 +385,8 @@ async fn main() {
 
         // Draw config ui
 
-        if show_config {
-            if !Window::new(
+        if show_config
+            && !Window::new(
                 hash!(),
                 Vec2::new(screen_width() * 0.1, screen_height() * 0.1),
                 Vec2::new(screen_width() * 0.8, screen_height() * 0.8),
@@ -476,9 +476,9 @@ async fn main() {
                 if ui.button(None, "Randomise") {
                     world.randomise();
                 }
-            }) {
-                show_config = false;
-            }
+            })
+        {
+            show_config = false;
         }
 
         root_ui().push_skin(&white_text_skin);

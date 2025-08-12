@@ -139,16 +139,16 @@ impl RulesetState {
                 })
             })
             .map(|(_, o)| o)
-            .or_else(|| self.otherwise.as_ref())
+            .or(self.otherwise.as_ref())
     }
 
     fn parse_rules(&mut self) -> Result<(), String> {
         let mut rules = vec![];
 
         for (s, out) in &self.rules {
-            let conditions = match parse_conditions(&s) {
+            let conditions = match parse_conditions(s) {
                 Ok((_, c)) => c,
-                Err(e) => return Err(String::from(format!("{:?}", e))),
+                Err(e) => return Err(format!("{:?}", e)),
             };
             rules.push((conditions, out.clone()))
         }
@@ -168,7 +168,7 @@ pub(crate) struct RulesetOutcome {
 #[derive(Deserialize, Clone, PartialEq, Debug)]
 #[serde(untagged)]
 pub enum RulesetColour {
-    RGBA(u8, u8, u8, u8),
+    Rgba(u8, u8, u8, u8),
     Hex(String),
 }
 
@@ -192,7 +192,7 @@ mod tests {
         let deserialized: RulesetState =
             serde_json::from_value(json_data).expect("Deserialization failed");
 
-        assert_eq!(deserialized.colour, RulesetColour::RGBA(255, 0, 0, 255));
+        assert_eq!(deserialized.colour, RulesetColour::Rgba(255, 0, 0, 255));
         assert!(deserialized.rules.contains_key("state1 > 2"));
         assert_eq!(deserialized.rules["state1 > 2"].next, "state2");
         assert_eq!(
@@ -204,7 +204,7 @@ mod tests {
     #[test]
     fn test_rulesetstate_transition() {
         let mut state = RulesetState {
-            colour: RulesetColour::RGBA(255, 0, 0, 255),
+            colour: RulesetColour::Rgba(255, 0, 0, 255),
             rules: HashMap::new(),
             otherwise: None,
             parsed_rules: vec![],
@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn test_rulesetstate_parse_rules_error() {
         let mut state = RulesetState {
-            colour: RulesetColour::RGBA(255, 0, 0, 255),
+            colour: RulesetColour::Rgba(255, 0, 0, 255),
             rules: HashMap::new(),
             otherwise: None,
             parsed_rules: vec![],
