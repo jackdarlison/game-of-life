@@ -1,0 +1,139 @@
+{
+    "default_state": "state_1",
+    "neighbourhood": {
+        "Moore": {
+            "range": 1,
+            "include_self": false
+        }
+    },
+    "states": {
+        "state_1": {
+            "colour": [255, 0, 0, 255],
+            "rules": {
+                "$state_2 > 0": {
+                    "next": "state_2"
+                }
+            }
+        },
+        "state_2": {
+            "colour": [255, 127, 0, 255],
+            "rules": {
+                "$state_3 > 0": {
+                    "next": "state_3"
+                }
+            }
+        },
+        "state_3": {
+            "colour": [255, 255, 0, 255],
+            "rules": {
+                "$state_4 > 0": {
+                    "next": "state_4"
+                }
+            }
+        },
+        "state_4": {
+            "colour": [127, 255, 0, 255],
+            "rules": {
+                "$state_5 > 0": {
+                    "next": "state_5"
+                }
+            }
+        },
+        "state_5": {
+            "colour": [0, 255, 0, 255],
+            "rules": {
+                "$state_6 > 0": {
+                    "next": "state_6"
+                }
+            }
+        },
+        "state_6": {
+            "colour": [0, 255, 127, 255],
+            "rules": {
+                "$state_7 > 0": {
+                    "next": "state_7"
+                }
+            }
+        },
+        "state_7": {
+            "colour": [0, 255, 255, 255],
+            "rules": {
+                "$state_8 > 0": {
+                    "next": "state_8"
+                }
+            }
+        },
+        "state_8": {
+            "colour": [0, 127, 255, 255],
+            "rules": {
+                "$state_9 > 0": {
+                    "next": "state_9"
+                }
+            }
+        },
+        "state_9": {
+            "colour": [0, 0, 255, 255],
+            "rules": {
+                "$state_10 > 0": {
+                    "next": "state_10"
+                }
+            }
+        },
+        "state_10": {
+            "colour": [127, 0, 255, 255],
+            "rules": {
+                "$state_11 > 0": {
+                    "next": "state_11"
+                }
+            }
+        },
+        "state_11": {
+            "colour": [255, 0, 255, 255],
+            "rules": {
+                "$state_12 > 0": {
+                    "next": "state_12"
+                }
+            }
+        },
+        "state_12": {
+            "colour": [255, 0, 127, 255],
+            "rules": {
+                "$state_13 > 0": {
+                    "next": "state_13"
+                }
+            }
+        },
+        "state_13": {
+            "colour": [255, 63, 63, 255],
+            "rules": {
+                "$state_14 > 0": {
+                    "next": "state_14"
+                }
+            }
+        },
+        "state_14": {
+            "colour": [255, 127, 127, 255],
+            "rules": {
+                "$state_15 > 0": {
+                    "next": "state_15"
+                }
+            }
+        },
+        "state_15": {
+            "colour": [255, 191, 191, 255],
+            "rules": {
+                "$state_16 > 0": {
+                    "next": "state_16"
+                }
+            }
+        },
+        "state_16": {
+            "colour": [255, 255, 255, 255],
+            "rules": {
+                "$state_1 > 0": {
+                    "next": "state_1"
+                }
+            }
+        }
+    }
+}

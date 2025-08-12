@@ -1,0 +1,33 @@
+{
+    "default_state": "dead",
+    "neighbourhood": {
+        "Moore": {
+            "range": 1,
+            "include_self": false
+        }
+    },
+    "states": {
+        "dead": {
+            "colour": [0, 0, 0, 255],
+            "rules": {
+                "$alive == 3": {
+                    "next": "alive"
+                },
+                "$alive == 6": {
+                    "next": "alive"
+                }
+            }
+        },
+        "alive": {
+            "colour": [8, 145, 178, 255],
+            "rules": {
+                "$alive < 2": {
+                    "next": "dead"
+                },
+                "$alive > 3": {
+                    "next": "dead"
+                }
+            }
+        }
+    }
+}
