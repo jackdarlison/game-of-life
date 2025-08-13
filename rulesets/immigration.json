@@ -8,7 +8,7 @@
     },
     "states": {
         "dead": {
-            "colour": [0, 0, 0, 255],
+            "colour": [0, 0, 0, 0],
             "rules": {
                 "$red == 3 ; $blue == 0": {
                     "next": "red"

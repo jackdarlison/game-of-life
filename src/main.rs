@@ -296,7 +296,7 @@ async fn main() {
     let mut world = World::new(config.get_grid_size(), ruleset).unwrap();
     world.randomise();
 
-    let mut ruleset_changed = false;
+    let mut reset_sim = false;
 
     // UI Skins
     let white_text_style = root_ui()
@@ -314,9 +314,8 @@ async fn main() {
         if elapsed_frame > config.step_time && !config.paused {
             elapsed_frame = 0.0;
 
-            // reset the world if the ruleset has changed to a valid config
-            if ruleset_changed {
-                ruleset_changed = false;
+            if reset_sim {
+                reset_sim = false;
                 let ruleset: Result<Ruleset, serde_json::Error> =
                     serde_json::from_str(&config.ruleset);
 
@@ -466,7 +465,7 @@ async fn main() {
                             4 => config.ruleset = WIREWORLD_STATE_MACHINE.to_string(),
                             _ => unreachable!(),
                         }
-                        ruleset_changed = true;
+                        reset_sim = true;
                         previous_defined_rule_ui = defined_rule_ui;
                     }
 
@@ -476,7 +475,7 @@ async fn main() {
                         Vec2::new(screen_width() * 0.75, screen_height() * 0.75),
                         &mut config.ruleset,
                     ) {
-                        ruleset_changed = true;
+                        reset_sim = true;
                     };
                 });
 
@@ -496,7 +495,7 @@ async fn main() {
 
                 if previous_cell_size != config.cell_size {
                     previous_cell_size = config.cell_size;
-                    ruleset_changed = true;
+                    reset_sim = true;
                 }
 
                 ui.separator();
